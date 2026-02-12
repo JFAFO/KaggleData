@@ -37,7 +37,7 @@ def run_cmd(cmd):
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True, encoding='utf-8')
         
         # 核心改进：识别网络中止的关键词
-        error_keywords = ["Connection aborted", "RemoteDisconnected", "BrokenPipeError", "connection reset"]
+        error_keywords = ["Connection aborted.", "RemoteDisconnected", "BrokenPipeError", "connection reset"]
         output = result.stdout + result.stderr
         
         if any(key in output for key in error_keywords):
@@ -153,18 +153,16 @@ class KaggleProcessor:
             return str(target_dir)
 
         logger.info(f"[{ref}] 开始下载...")
-        try:
-            # 使用 kagglehub 下载到缓存
-            cached_path = kagglehub.dataset_download(ref)
-            if not cached_path:
-                raise RuntimeError(f"kagglehub 下载返回路径为空: {ref}")
-            # 将文件从缓存移动到我们的测试目录，方便查看
-            shutil.copytree(cached_path, target_dir, dirs_exist_ok=True)
-            logger.info(f"[{ref}] 下载并移动完成 -> {target_dir}")
-            return str(target_dir)
-        except Exception as e:
-            logger.error(f"[{ref}] 下载失败: {e}")
-            return None
+        
+        # 使用 kagglehub 下载到缓存
+        cached_path = kagglehub.dataset_download(ref)
+        if not cached_path:
+            raise RuntimeError(f"kagglehub 下载返回路径为空: {ref}")
+        # 将文件从缓存移动到我们的测试目录，方便查看
+        shutil.copytree(cached_path, target_dir, dirs_exist_ok=True)
+        logger.info(f"[{ref}] 下载并移动完成 -> {target_dir}")
+        return str(target_dir)
+
 
     def process_single_item(self, row):
         """处理单条数据的完整流程"""
