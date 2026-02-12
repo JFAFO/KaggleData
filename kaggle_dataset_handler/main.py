@@ -14,7 +14,7 @@ SETTING_DIR = Path("setting")
 PAGE_RECORD_FILE = SETTING_DIR / "page_now.json"
 CLOUD_CONFIG_FILE = SETTING_DIR / "cloud.json"
 LOG_DIR = Path("logs")
-DATASET_DIR = Path("./local_workspace/output/datasets") # 对应 get_data 中的下载路径
+DATASET_INFO_DIR = Path("./local_workspace/output") # 对应 get_data 中的下载路径
 
 def setup_logging(page_info):
     """
@@ -124,7 +124,7 @@ def run_workflow(pages, do_upload):
                 
                 # 读取云配置
                 try:
-                    upload.upload_files_from_folder(str(DATASET_DIR))
+                    upload.upload_files_from_folder(str(DATASET_INFO_DIR))
                     
                     # 3. 更新进度 (仅在 -c 模式或连续上传模式下有意义，这里每次成功都更新以防中断)
                     # 为了简单起见，如果当前页大于记录页，则更新

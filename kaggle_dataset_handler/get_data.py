@@ -9,6 +9,10 @@ import kagglehub
 from pathlib import Path
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
+import random
+import functools
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ================= 模块 1: 基础配置与工具 =================
 # 配置区域
@@ -38,10 +42,46 @@ def run_cmd(cmd):
 
 # ================= 模块 2: Kaggle 核心逻辑 (获取信息与下载) =================
 
+def retry_on_failure(max_retries=3, base_delay=5, backoff_factor=2):
+    """
+    重试装饰器
+    :param max_retries: 最大重试次数
+    :param base_delay: 基础等待秒数
+    :param backoff_factor: 指数倍数 (例如 5, 10, 20...)
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            retries = 0
+            while retries <= max_retries:
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    # 如果重试次数耗尽，抛出异常
+                    if retries == max_retries:
+                        logger.error(f"方法 {func.__name__} 在重试 {max_retries} 次后依然失败: {e}")
+                        raise e
+                    
+                    # 计算等待时间：base_delay * (backoff_factor ^ retries) + 随机抖动
+                    wait_time = (base_delay * (backoff_factor ** retries)) + random.uniform(1, 3)
+                    logger.warning(f"[{func.__name__}] 触发限流或错误: {e}。 "
+                                   f"{wait_time:.1f}秒后进行第 {retries + 1} 次重试...")
+                    
+                    time.sleep(wait_time)
+                    retries += 1
+            return None
+        return wrapper
+    return decorator
+
+
+
+
 class KaggleProcessor:
     def __init__(self):
         pass
-
+    
+    
+    @retry_on_failure(max_retries=3, base_delay=3)
     def get_metadata(self, ref):
         """获取数据集的 Licenses 和 Tags"""
         temp_path = METADATA_DIR / ref.replace("/", "_")
@@ -74,10 +114,14 @@ class KaggleProcessor:
         # 清理元数据临时文件
         shutil.rmtree(temp_path, ignore_errors=True)
         return data
-
+    
+    
+    @retry_on_failure(max_retries=3, base_delay=3)
     def get_file_explorer(self, ref):
         """获取数据集的文件列表"""
         csv_out = run_cmd(f"kaggle datasets files {ref} --csv")
+        if not csv_out or "429 - Too Many Requests" in csv_out:
+            raise RuntimeError(f"Kaggle API 拒绝请求或返回为空: {ref}")
         files = []
         if csv_out:
             reader = csv.DictReader(csv_out.splitlines())
@@ -88,6 +132,7 @@ class KaggleProcessor:
                 })
         return files
 
+    @retry_on_failure(max_retries=3, base_delay=3)
     def download_dataset(self, ref):
         """下载数据集文件到本地指定目录"""
         target_dir = DATASET_DIR / ref.split("/")[-1]
@@ -100,7 +145,8 @@ class KaggleProcessor:
         try:
             # 使用 kagglehub 下载到缓存
             cached_path = kagglehub.dataset_download(ref)
-            
+            if not cached_path:
+                raise RuntimeError(f"kagglehub 下载返回路径为空: {ref}")
             # 将文件从缓存移动到我们的测试目录，方便查看
             shutil.copytree(cached_path, target_dir, dirs_exist_ok=True)
             logger.info(f"[{ref}] 下载并移动完成 -> {target_dir}")

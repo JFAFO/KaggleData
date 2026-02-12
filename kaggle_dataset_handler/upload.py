@@ -40,7 +40,7 @@ def oss_client():
         's3',
         aws_access_key_id=config["ACCESS_KEY"],
         aws_secret_access_key=config["SECRET_KEY"],
-        endpoint_url='http://s3.cn-north-1.jdcloud-oss.com'
+        endpoint_url = config["ENDPOINT_URL"],
     )
     # 列出现有桶
     logger.info(s3.list_buckets())
@@ -113,10 +113,10 @@ def upload_files_from_folder(folder_path, bucket_name=None, oss_prefix=None):
         try:
             # 获取相对于根文件夹的路径，保持目录结构
             relative_path = file.relative_to(folder_path)
-
+            oss_path = relative_path.as_posix()
             # 构建 OSS 对象键，保持原有的目录结构
             if oss_prefix:
-                object_key = f"{oss_prefix.rstrip('/')}/{relative_path}"
+                object_key = f"{oss_prefix.rstrip('/')}/{oss_path}"
             else:
                 object_key = str(relative_path)
 
