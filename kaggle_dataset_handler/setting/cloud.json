@@ -1,0 +1,7 @@
+{
+    "ACCESS_KEY": "你的AccessKey",
+    "SECRET_KEY": "你的SecretKey",
+    "ENDPOINT_URL": "url",
+    "BUCKET_NAME": "桶名",
+    "OSS_PREFIX": "kaggle_dataset"
+}
