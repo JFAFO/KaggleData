@@ -83,5 +83,5 @@ def competitions_df_to_jsonl_v2(df, output_path):
 
 if __name__ == "__main__":
     
-    df = pd.read_csv("test_competitions.csv")
+    df = pd.read_csv("Competitions.csv")
     competitions_df_to_jsonl_v2(df, "competitions_without_lrdbd.jsonl")

@@ -43,7 +43,7 @@ def oss_client():
         endpoint_url = config["ENDPOINT_URL"],
     )
     # 列出现有桶
-    logger.info(s3.list_buckets())
+    # logger.info(s3.list_buckets())
     return s3
 
 def upload(bucket_name,object_key, file_name):

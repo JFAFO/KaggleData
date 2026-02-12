@@ -32,14 +32,25 @@ for p in [DATASET_DIR, METADATA_DIR, JSONL_DIR]:
 logger = logging.getLogger("main.downloader")
 
 def run_cmd(cmd):
-    """执行 Shell 命令工具"""
     try:
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-        return result.stdout.strip()
+        # 使用 check=True 配合捕获
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, encoding='utf-8')
+        
+        # 核心改进：识别网络中止的关键词
+        error_keywords = ["Connection aborted", "RemoteDisconnected", "BrokenPipeError", "connection reset"]
+        output = result.stdout + result.stderr
+        
+        if any(key in output for key in error_keywords):
+            logger.error(f"检测到网络链接中止: {output}")
+            raise ConnectionError(f"Kaggle 链接已断开: {output}") # 抛出异常触发装饰器
+            
+        if result.returncode != 0:
+            raise RuntimeError(f"命令执行失败 (Code {result.returncode}): {output}")
+            
+        return result.stdout
     except Exception as e:
-        logger.error(f"命令执行出错: {cmd}, 错误: {e}")
-        return None
-
+        # 让异常向上传递给 @retry_on_failure
+        raise e
 # ================= 模块 2: Kaggle 核心逻辑 (获取信息与下载) =================
 
 def retry_on_failure(max_retries=3, base_delay=5, backoff_factor=2):
