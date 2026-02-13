@@ -8,6 +8,8 @@
 
 * 官方维护的数据库meta-kaggle：https://www.kaggle.com/datasets/kaggle/meta-kaggle
 
+  > https://www.kaggle.com/docs/api#authentication
+  >
   > 需要按照官网要求配置好`kaggle.json`
   >
   > 1. 去 Kaggle 官网 -> Settings -> API -> Create New Token。
@@ -18,7 +20,7 @@
   >
   > 要确保kaggle的版本等，防止使用cli时出现提示信息，导致脚本解析格式失败
 
-#### 竞赛题目类
+#### 竞赛题目
 
 **来源：**除learderborad以外的利用meta kaggle中的数据Competitions.csv，leaderborad利用kaggle-cli的命令
 
@@ -98,7 +100,7 @@
 
 **上传功能**
 
-因为数据集较大，为了实现更持续的下载，设计了以也为单位的上传模块，基于AWS的s3协议
+因为数据集较大，为了实现更持续的下载，设计了以页为单位的上传模块，基于AWS的s3协议
 
 **使用说明**
 
@@ -171,7 +173,7 @@
 
 * `dataset`文件夹中，每个数据集都有自己的子文件夹，名称为Ref中的`/`被替换成了`_`，其中报存的是数据集的所有文件
 
-#### 代码数据获取
+#### 代码数据
 
 **资源获取**
 
@@ -210,7 +212,7 @@
 
 **上传功能**
 
-因为数据集较大，为了实现更持续的下载，设计了以也为单位的上传模块，基于AWS的s3协议
+因为数据集较大，为了实现更持续的下载，设计了以页为单位的上传模块，基于AWS的s3协议
 
 **使用说明、项目配置：**与数据集的相同
 
@@ -232,3 +234,132 @@
   ```
 
 * `dataset`文件夹中，每kernel都有自己的子文件夹，名称为id中的`/`被替换成了`_`，其中报存的是kernel的metadata、源文件、log文件
+
+#### 模型获取
+
+> ## 注意：
+>
+> 这里没有最终实现完成，因为kaggle cli的bug，导致无法获取variation的list，故不知道格式，等到恢复后若想使用可自行补齐`variations_get.py`，其中的函数是用来遍历指定model所有的variations，并返回其列表
+>
+> **因此项目也没通过调试，可能会有bug**
+
+**获取资源**
+
+- 获取列表
+
+  ```bash
+  kaggle models list [options]
+  ```
+
+  * 要使用 `-v`获取`csv`
+  * 使用`--sort-by voteCount`
+
+* 获取模型metadata
+
+  ```shell
+  kaggle models get [list中得到的ref字段] -p [path]
+  ```
+
+* 获取模型的variation
+
+  ```bash
+  kaggle models variations list [options]
+  ```
+
+* 获取variation的metadata
+
+  ```bash
+  kaggle models variations get [] -p [path]
+  ```
+
+* 下载对应版本的模型文件
+
+  ```bash
+  kaggle models variations versions download <MODEL_VARIATION_VERSION> [options]
+  ```
+  
+  - `-p, --path <PATH>`: Folder to download files to (defaults to current directory).
+  - `--untar`: Untar the downloaded file if it's a `.tar` archive (deletes the `.tar` file afterwards).
+  - `--unzip`: Unzip the downloaded file if it's a `.zip` archive (deletes the `.zip` file afterwards).
+
+**具体流程**
+
+* 获取list的一页，
+
+  分别获取model的所有metadata下载到`./local_workspace/temp_meta`，记录字段ownerSlug不变、字段slug改名为modelSlug，description字段改名modelCard，将三者记录并删除文件，
+
+  按照这种方式处理完页的所有model，创建文件`./local_workspace/output/info/page_[page token的前6位].json`，将记录的内容保存其中
+
+* 对所有model重复以下内容
+
+  * 一个单独的模块遍历单个model的所有variation，返回所有版本的slug
+  * 对每个variation
+    * 按照slug，依次下载它的metadata（json文件），保存framework为framework，instanceSlug为instanceSlug，usage为usage
+    * 将其记录到`./local_workspace/output/info/page_[page token的前6位].json`中的对应model下
+    * 创建文件夹`./local_workspace/output/model/[ownerSlug]_[modelSlug]/[framework]/[instanceSlug]`，将这个metadata放进去，并依据其中的versionNumber字段下载，将模型文件下载在其中（要解压）
+
+* 通过main函数控制整体循环，并集成上传功能
+
+**使用说明、配置方法：**与数据集类似，但只支持`-c`和从头开始若干页的爬取，具体可见`-h`
+
+**项目结构**
+
+```css
+local_workspace/
+│
+├── temp_meta/                  # 临时metadata缓存
+│   └── *.json
+│
+├── output/
+│   ├── info/
+│   │   ├── page_CfDJ8E.json
+│   │   └── page_xxxxxx.json
+│   │
+│   └── model/
+│       └── google_gemma/
+│           ├── README.txt                # 可选说明文件
+│           └── tensorflow/
+│               └── gemma-2b/
+│                   ├── metadata.json
+│                   ├── model.bin
+│                   ├── config.json
+│                   ├── tokenizer.json
+│                   └── version.txt
+│
+├── logs/
+│   └── run_20260213_token_xxxx.log
+│
+└── setting/
+    ├── page_now.json
+    └── cloud.json
+
+```
+
+**最终数据格式**
+
+```json
+// info文件夹中的记录
+[
+  {
+    "ownerSlug": "google",
+    "modelSlug": "gemma",
+    "ref": "google/gemma",
+    "variations": [
+      {
+        "framework": "tensorflow",
+        "instanceSlug": "gemma-2b",
+        "usage": "inference",
+        "versionNumber": 3
+      }
+    ]
+  }
+]
+```
+
+#### 问答与讨论
+
+没有api，对于动态网页，实现比较困难，这里没有做
+
+#### 课程
+
+同样的，没有api且为动态网页，并且教案就是kernel，即代码部分已实现，同时作业总体量较小，这里也没有做

@@ -1,0 +1,7 @@
+{
+    "ACCESS_KEY": "JDC_09F00A7C4A5ECB5D9ECEFFC6A46B",
+    "SECRET_KEY": "6A696B3EE1D81B5C1977DFF81FCAA95E",
+    "ENDPOINT_URL": "http://s3.cn-north-1.jdcloud-oss.com",
+    "BUCKET_NAME": "aisec",
+    "OSS_PREFIX": "kaggleData/kaggle_kernels"
+}
