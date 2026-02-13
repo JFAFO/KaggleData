@@ -2,7 +2,9 @@
 
 #### 数据来源
 
-* 官方api：https://github.com/Kaggle/kaggle-cli/tree/main/docs
+* 官方api  >  kaggle-cli ：https://github.com/Kaggle/kaggle-cli/tree/main/docs
+
+* 官方api  >  kagglehub ：https://github.com/Kaggle/kagglehub/blob/main/README.md
 
 * 官方维护的数据库meta-kaggle：https://www.kaggle.com/datasets/kaggle/meta-kaggle
 
@@ -13,6 +15,8 @@
   > 3. 将其放置在系统指定目录：
   >    - **Linux/Mac**: `~/.kaggle/kaggle.json` (并执行 `chmod 600 ~/.kaggle/kaggle.json`)
   >    - **Windows**: `C:\Users\<用户名>\.kaggle\kaggle.json`
+  >
+  > 要确保kaggle的版本等，防止使用cli时出现提示信息，导致脚本解析格式失败
 
 #### 竞赛题目类
 
@@ -128,7 +132,6 @@
   └── local_workspace/     # (自动生成) 数据下载与日志目录
   ```
 
-
 **配置项目 **
 
 - 在项目根目录下手动创建 `setting` 文件夹和 `cloud.json` 文件，即`setting/cloud.json`
@@ -144,3 +147,88 @@
    ```
 
 * `pip install -r requirements.txt`
+
+**最终格式**
+
+* 上传后指定路径下（对应本地的`./local_workspace/output`）有`meta_data`和`dataset`两个文件夹
+
+* `meta_data`中存储着以页为单位的jsonl信息，名称为`page_[num].jsonl`，其中字段如下：
+
+  ```json
+  {
+      "Ref": "",
+      "Title": "",
+      "lastUpdated": "[time]",
+      "DatasetSize": 100,
+      "usabilityRating": 0.1,
+      "File Explorer":[],
+      "Licenses":[],
+      "Tags":[],
+      "Content":"...",
+  	"File Explorer":[]
+  }
+  ```
+
+* `dataset`文件夹中，每个数据集都有自己的子文件夹，名称为Ref中的`/`被替换成了`_`，其中报存的是数据集的所有文件
+
+#### 代码数据获取
+
+**资源获取**
+
+* 获取列表：
+
+  ```bash
+  kaggle kernels list
+  ```
+
+* 获取meta data和源文件
+
+  ```bash
+  kaggle kernels pull [slug/id 这次是一样的] -p [dir] -m
+
+* 获取output
+
+  ```bash
+  kaggle kernels [同上] -p [同上]
+  ```
+
+**操作思路**
+
+* 获取list，然后根据ref依次请求metadata和源文件和log，存储在对应slug为名字的文件夹
+
+  > log文件的结尾为`.log`，metadata的同一命名方式为`kernel-metadata.json`，剩下的源文件不一定
+
+* 根据metadata提取重要信息，id，title，kernel_type、language，放到这页的同一记录的jsonl文件
+
+* 寻找源文件中所有导入的库，识别出来（默认只有python和R语言），同样放到以页为单位的记录文件中
+
+  > 注：
+  >
+  > 1. kernel_type有script和notebook两种，前者就是直接的代码
+  > 2. 对于notebook，是`.ipynb`格式的，但文件后缀不一定，统一改为json存储（可通过cell_type为code搜索代码块）
+  > 3. 若出现不是python或R的情况，则导入库记录为空，并抛出log warning 
+
+**上传功能**
+
+因为数据集较大，为了实现更持续的下载，设计了以也为单位的上传模块，基于AWS的s3协议
+
+**使用说明、项目配置：**与数据集的相同
+
+**最终格式**
+
+* 上传后指定路径下（对应本地的`./local_workspace/output`）有`info`和`code`两个文件夹
+
+* `info`中存储着以页为单位的json信息，名称为`page_[num].json`，其中字段如下：
+
+  ```json
+  {
+      "id": "",
+      "title": "",
+      "kernel_type": "",
+      "language": "",
+      "log_file": "[name]",
+      "imported_libs": []
+  }
+  ```
+
+* `dataset`文件夹中，每kernel都有自己的子文件夹，名称为id中的`/`被替换成了`_`，其中报存的是kernel的metadata、源文件、log文件

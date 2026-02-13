@@ -1,0 +1,7 @@
+{
+    "ACCESS_KEY": "",
+    "SECRET_KEY": "",
+    "ENDPOINT_URL": "url",
+    "BUCKET_NAME": "BUCKET_NAME",
+    "OSS_PREFIX": "KaggleData/kaggle_kernels"
+}

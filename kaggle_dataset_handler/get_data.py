@@ -146,7 +146,7 @@ class KaggleProcessor:
     @retry_on_failure(max_retries=3, base_delay=3)
     def download_dataset(self, ref):
         """下载数据集文件到本地指定目录"""
-        target_dir = DATASET_DIR / ref.split("/")[-1]
+        target_dir = DATASET_DIR / ref.repalace("/", "_")
         
         if target_dir.exists():
             logger.info(f"[{ref}] 本地已存在，跳过下载")

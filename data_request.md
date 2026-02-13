@@ -57,20 +57,17 @@
     - **Dataset 内容**: CSV/JSON/SQLite 等源文件。
 
 ### 3.3 代码与分析 (Code/Notebooks/Kernels) - SFT 核心
-- **范围**: 所有获得勋章 (Medal) 的 Notebooks。
+- **范围**: 所有获得勋章 (Medal) 的 Notebooks，script也要的
 - **页面**: `kaggle.com/code/[user]/[slug]`
 - **采集内容**:
     - **Notebook Structure**: 严格保留 Code 单元格和 Markdown 单元格的交替顺序。
-    - **Outputs**: 执行后的文本输出、表格摘要、报错信息。
-    - **Visualization**: 绘图生成的静态图片链接 (需下载并关联)。
+    - **Outputs**: 执行后的文本输出、表格摘要、报错信息，`.log`
 - **核心字段**:
     - `KernelID`: 唯一标识
     - `Source_Code`: 原始代码
     - `Library_Imports`: 统计使用的库列表
-    - `Execution_Output`: 关键输出 (如 `df.describe()`)
 - **多模态增强**:
-    - `Static_Images`: 关联 Notebook 绘图与描述性文字。
-    - `Table_Samples`: 数据前 5 行预览 (HTML 转 Markdown 表格)。
+    - 先不弄了
 
 ### 3.4 模型库 (Models)
 - **范围**: 官方及高获赞 (Most Upvoted) 模型。
